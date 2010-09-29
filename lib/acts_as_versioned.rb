@@ -81,6 +81,7 @@ module ActiveRecord #:nodoc:
         # * <tt>version_column</tt> - name of the column in the model that keeps the version number (default: version)
         # * <tt>sequence_name</tt> - name of the custom sequence to be used by the versioned model.
         # * <tt>limit</tt> - number of revisions to keep, defaults to unlimited
+        # * <tt>versions_name</tt> - name to be used to access the versions.. DH
         # * <tt>if</tt> - symbol of method to check before saving a new version.  If this method returns false, a new version is not saved.
         #   For finer control, pass either a Proc or modify Model#version_condition_met?
         #
@@ -170,7 +171,7 @@ module ActiveRecord #:nodoc:
 
           cattr_accessor :versioned_class_name, :versioned_foreign_key, :versioned_table_name, :versioned_inheritance_column, 
             :version_column, :max_version_limit, :track_altered_attributes, :version_condition, :version_sequence_name, :non_versioned_columns,
-            :version_association_options, :version_if_changed
+            :version_association_options, :version_if_changed, :versions_name
 
           self.versioned_class_name         = options[:class_name]  || "Version"
           self.versioned_foreign_key        = options[:foreign_key] || self.to_s.foreign_key
@@ -180,6 +181,7 @@ module ActiveRecord #:nodoc:
           self.version_sequence_name        = options[:sequence_name]
           self.max_version_limit            = options[:limit].to_i
           self.version_condition            = options[:if] || true
+          self.versions_name                = options[:versions_name] || :versions
           self.non_versioned_columns        = [self.primary_key, inheritance_column, self.version_column, 'lock_version', versioned_inheritance_column] + options[:non_versioned_columns].to_a.map(&:to_s)
           self.version_association_options  = {
                                                 :class_name  => "#{self.to_s}::#{versioned_class_name}",
@@ -197,7 +199,7 @@ module ActiveRecord #:nodoc:
           end
 
           class_eval <<-CLASS_METHODS
-            has_many :versions, version_association_options do
+            has_many :#{versions_name.to_s}, version_association_options do
               # finds earliest version of this record
               def earliest
                 @earliest ||= find(:first, :order => '#{version_column}')
@@ -292,7 +294,7 @@ module ActiveRecord #:nodoc:
           if version.is_a?(self.class.versioned_class)
             return false unless version.send(self.class.versioned_foreign_key) == id and !version.new_record?
           else
-            return false unless version = versions.send("find_by_#{self.class.version_column}", version)
+            return false unless version = self.send(self.versions_name).send("find_by_#{self.class.version_column}", version)
           end
           self.clone_versioned_model(version, self)
           send("#{self.class.version_column}=", version.send(self.class.version_column))
@@ -387,7 +389,7 @@ module ActiveRecord #:nodoc:
 
           # Gets the next available version for the current record, or 1 for a new record
           def next_version
-            (new_record? ? 0 : versions.calculate(:max, version_column).to_i) + 1
+            (new_record? ? 0 : self.send(self.versions_name).calculate(:max, version_column).to_i) + 1
           end
 
         module ClassMethods

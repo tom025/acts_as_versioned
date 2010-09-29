@@ -34,10 +34,22 @@ if ENV['DB'] == 'postgresql'
   ActiveRecord::Base.connection.execute "ALTER TABLE widget_versions ADD COLUMN id INTEGER PRIMARY KEY DEFAULT nextval('widgets_seq');"
 end
 
-Test::Unit::TestCase.fixture_path = File.dirname(__FILE__) + "/fixtures/"
-$:.unshift(Test::Unit::TestCase.fixture_path)
 
-class Test::Unit::TestCase #:nodoc:
+fixture_path_klazz = Test::Unit::TestCase
+if defined?(ActiveRecord::TestFixtures)
+  fixture_path_klazz = ActiveSupport::TestCase
+  class ActiveSupport::TestCase
+    include ActiveRecord::TestFixtures
+  end
+end
+fixture_path_klazz.fixture_path = File.dirname(__FILE__) + "/fixtures"
+$LOAD_PATH.unshift(fixture_path_klazz.fixture_path)
+
+#Test::Unit::TestCase.fixture_path = File.dirname(__FILE__) + "/fixtures/"
+#$:.unshift(Test::Unit::TestCase.fixture_path)
+
+#class Test::Unit::TestCase #:nodoc:
+class ActiveSupport::TestCase #:nodoc:
   # Turn off transactional fixtures if you're working with MyISAM tables in MySQL
   self.use_transactional_fixtures = true
   

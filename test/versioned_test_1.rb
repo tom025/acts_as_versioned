@@ -368,12 +368,4 @@ class VersionedTest < ActiveSupport::TestCase
     end
     assert ActiveRecord::Base.lock_optimistically
   end
-
-  def test_using_alternative_versions_name
-    p = AlternativeVersionsNamePage.create! :title => 'first title', :body => 'first body'
-    assert !p.new_record?
-    assert_equal 1, p.happy_versions.size
-    assert_equal 1, p.version
-    assert_instance_of AlternativeVersionsNamePage.versioned_class, p.happy_versions.first
-  end
 end

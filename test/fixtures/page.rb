@@ -17,6 +17,11 @@ class Page < ActiveRecord::Base
   end
 end
 
+class AlternativeVersionsNamePage < ActiveRecord::Base
+  set_table_name "pages"
+  acts_as_versioned :versions_name => :happy_versions, :table_name => 'page_versions', :foreign_key => 'page_id'
+end
+
 module LockedPageExtension
   def hello_world
     'hello_world'
